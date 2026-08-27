@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Twisted Art</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper: #E4E7EA;
+    --paper-line: #C7CCD1;
+    --ink: #1C2226;
+    --pencil: #545C63;
+    --orange: #E0632A;
+    --orange-dim: #C2531F;
+    --cyan: #1B8FA6;
+    --cyan-dim: #14707F;
+    --shadow: rgba(28,34,38,0.22);
+  }
+  *{ box-sizing: border-box; }
+  html,body{
+    margin:0; padding:0; min-height:100vh;
+    background: var(--paper);
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 34px, var(--paper-line) 35px);
+    color: var(--ink);
+    font-family: 'Space Grotesk', sans-serif;
+  }
+  .wrap{
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 36px 24px 80px;
+  }
+  header{
+    text-align:center;
+    margin-bottom: 28px;
+    border-bottom: 3px solid var(--ink);
+    padding-bottom: 20px;
+  }
+  h1{
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(2.4rem, 7vw, 3.6rem);
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    margin: 0 0 6px;
+    color: var(--ink);
+  }
+  .sub{
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--pencil);
+    font-size: 0.85rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    margin: 0;
+  }
+
+  /* Timer dial */
+  .timer-row{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap: 28px;
+    flex-wrap: wrap;
+    margin: 28px 0 18px;
+  }
+  .dial-box{
+    position:relative;
+    width: 168px; height: 168px;
+  }
+  svg.dial{ width:100%; height:100%; transform: rotate(-90deg); }
+  .dial-track{ fill:none; stroke: var(--paper-line); stroke-width: 10; }
+  .dial-progress{ fill:none; stroke: var(--orange); stroke-width: 10; stroke-linecap: round; transition: stroke-dashoffset 0.25s linear, stroke 0.3s; }
+  .dial-time{
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'JetBrains Mono', monospace; font-weight:600; font-size: 1.7rem;
+    color: var(--ink);
+  }
+
+  .controls{
+    display:flex; flex-direction:column; gap: 10px;
+    min-width: 220px;
+  }
+  .time-set{
+    display:flex; align-items:center; gap:8px;
+    font-family:'Space Grotesk', sans-serif; font-size:0.9rem;
+    text-transform: uppercase; letter-spacing: 0.02em;
+  }
+  .time-set input[type=number]{
+    width: 58px; padding:6px 8px; border: 2px solid var(--ink);
+    border-radius: 2px; font-family:'JetBrains Mono', monospace; font-size:0.9rem;
+    background: #fff;
+  }
+  .btn-row{ display:flex; gap:8px; flex-wrap: wrap; }
+  button{
+    font-family:'Space Grotesk', sans-serif; font-weight:600; font-size: 0.85rem;
+    text-transform: uppercase; letter-spacing: 0.03em;
+    border: 2px solid var(--ink);
+    border-radius: 2px;
+    padding: 9px 16px;
+    background: #fff;
+    cursor:pointer;
+    box-shadow: 3px 3px 0 var(--shadow);
+    transition: transform 0.12s, box-shadow 0.12s;
+  }
+  button:hover{ transform: translate(-1px,-1px); box-shadow: 4px 4px 0 var(--shadow); }
+  button:active{ transform: translate(1px,1px); box-shadow: 1px 1px 0 var(--shadow); }
+  button.primary{ background: var(--orange); color:#fff; }
+  button.secondary{ background: var(--cyan); color:#fff; }
+  button.ghost{ background: var(--paper); }
+  button:disabled{ opacity:0.45; cursor:not-allowed; box-shadow:none; transform:none; }
+
+  /* Prompt card */
+  .stage{
+    display:flex; flex-direction:column; align-items:center;
+    margin-top: 12px;
+  }
+  .prompt-card{
+    position:relative;
+    background:#fff;
+    border: 2.5px solid var(--ink);
+    border-radius: 0;
+    padding: 34px 30px;
+    width: 100%;
+    max-width: 560px;
+    text-align:center;
+    box-shadow: 6px 6px 0 var(--shadow);
+  }
+  .prompt-label{
+    font-family:'JetBrains Mono', monospace; font-size:0.75rem; text-transform:uppercase;
+    letter-spacing: 0.12em; color: var(--pencil); margin-bottom: 10px;
+  }
+  .prompt-text{
+    font-family:'Archivo Black', sans-serif;
+    font-size: clamp(1.3rem, 4vw, 1.9rem);
+    line-height: 1.35;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  .pin{
+    position:absolute; top:-3px; left:-3px; right:-3px;
+    height: 6px;
+    background: var(--ink);
+  }
+
+  /* Twist cards */
+  .twists{
+    display:flex; flex-wrap:wrap; justify-content:center; gap: 14px;
+    margin-top: 26px;
+    max-width: 640px;
+  }
+  .twist-card{
+    font-family:'Space Grotesk', sans-serif; font-weight:600; font-size: 0.92rem;
+    background: #fff;
+    border: 2px solid var(--ink);
+    border-radius: 0;
+    padding: 10px 14px;
+    box-shadow: 3px 3px 0 var(--shadow);
+    animation: dropIn 0.35s ease;
+  }
+  .twist-card:nth-child(4n+1){ border-left: 5px solid var(--orange); }
+  .twist-card:nth-child(4n+2){ border-left: 5px solid var(--cyan); }
+  .twist-card:nth-child(4n+3){ border-left: 5px solid var(--cyan-dim); }
+  .twist-card:nth-child(4n+4){ border-left: 5px solid var(--orange-dim); }
+  @keyframes dropIn{
+    from{ opacity:0; transform: translateY(-14px); }
+    to{ opacity:1; transform: translateY(0); }
+  }
+
+  .status{
+    font-family:'JetBrains Mono', monospace; font-size: 0.85rem;
+    color: var(--pencil); margin-top: 18px;
+    min-height: 1.2em; text-align:center;
+  }
+
+  /* Settings / deck editor */
+  details.deck-editor{
+    margin-top: 40px; max-width: 640px; margin-left:auto; margin-right:auto;
+    border-top: 2px solid var(--ink); padding-top: 18px;
+  }
+  summary{
+    font-family:'Space Grotesk', sans-serif; font-weight:600; cursor:pointer; font-size:0.9rem;
+    text-transform: uppercase; letter-spacing: 0.03em;
+    color: var(--pencil);
+  }
+  .deck-grid{
+    display:grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 14px;
+  }
+  @media (max-width: 560px){ .deck-grid{ grid-template-columns: 1fr; } }
+  .deck-grid label{
+    font-family:'JetBrains Mono', monospace; font-size:0.75rem; text-transform: uppercase;
+    letter-spacing: 0.06em; display:block; margin-bottom:6px; color: var(--pencil);
+  }
+  textarea{
+    width:100%; min-height: 140px; font-family:'JetBrains Mono', monospace; font-size: 0.8rem;
+    padding: 10px; border: 2px solid var(--ink); border-radius: 0;
+    background:#fff; resize: vertical;
+  }
+  .rounds-select{ font-family:'Space Grotesk', sans-serif; }
+  footer{
+    text-align:center; margin-top: 40px; font-family:'JetBrains Mono', monospace;
+    color: var(--pencil); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .visually-hidden{
+    position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0);
+  }
+  @media (prefers-reduced-motion: reduce){
+    .twist-card{ animation: none; }
+    button{ transition:none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Twisted Art</h1>
+    <p class="sub">Start with a prompt. When the timer runs out, a new twist lands on your page.</p>
+  </header>
+
+  <div class="timer-row">
+    <div class="dial-box">
+      <svg class="dial" viewBox="0 0 120 120">
+        <circle class="dial-track" cx="60" cy="60" r="52"></circle>
+        <circle id="dialProgress" class="dial-progress" cx="60" cy="60" r="52" stroke-dasharray="326.7" stroke-dashoffset="0"></circle>
+      </svg>
+      <div class="dial-time" id="dialTime">02:00</div>
+    </div>
+    <div class="controls">
+      <div class="time-set">
+        <span>Round length:</span>
+        <input type="number" id="minutesInput" min="0" max="30" value="2" aria-label="Minutes"> m
+        <input type="number" id="secondsInput" min="0" max="59" value="0" aria-label="Seconds"> s
+      </div>
+      <div class="time-set">
+        <span>Rounds:</span>
+        <select id="roundsSelect" class="rounds-select">
+          <option value="1">1 twist</option>
+          <option value="2">2 twists</option>
+          <option value="3" selected>3 twists</option>
+          <option value="4">4 twists</option>
+          <option value="5">5 twists</option>
+          <option value="99">Keep going until stopped</option>
+        </select>
+      </div>
+      <div class="btn-row">
+        <button class="primary" id="startBtn">Start</button>
+        <button class="ghost" id="pauseBtn" disabled>Pause</button>
+        <button class="ghost" id="resetBtn">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="prompt-card">
+      <div class="pin" aria-hidden="true"></div>
+      <div class="prompt-label">Today's prompt</div>
+      <div class="prompt-text" id="promptText">Press "New Prompt" to begin</div>
+    </div>
+
+    <div class="twists" id="twistsContainer" aria-live="polite"></div>
+
+    <div class="btn-row" style="margin-top:22px;">
+      <button class="secondary" id="newPromptBtn">New Prompt</button>
+      <button class="ghost" id="skipBtn" disabled>Skip to Next Twist</button>
+    </div>
+
+    <p class="status" id="statusText"></p>
+  </div>
+
+  <details class="deck-editor">
+    <summary>Edit the prompt &amp; twist decks</summary>
+    <div class="deck-grid">
+      <div>
+        <label for="promptDeck">Starting prompts (one per line)</label>
+        <textarea id="promptDeck"></textarea>
+      </div>
+      <div>
+        <label for="twistDeck">Twists (one per line)</label>
+        <textarea id="twistDeck"></textarea>
+      </div>
+    </div>
+    <div class="btn-row" style="margin-top:12px;">
+      <button class="ghost" id="saveDeckBtn">Save decks</button>
+      <button class="ghost" id="resetDeckBtn">Restore defaults</button>
+    </div>
+  </details>
+
+  <footer>Made for the art room</footer>
+</div>
+
+<audio id="dingSound" preload="auto"></audio>
+
+<script>
+(function(){
+  const DEFAULT_PROMPTS = [
+    "Draw a house",
+    "Draw a tree",
+    "Draw a creature with four legs",
+    "Draw a vehicle",
+    "Draw a person standing",
+    "Draw a bowl of fruit",
+    "Draw a simple circle and build from it",
+    "Draw a boat",
+    "Draw a robot",
+    "Draw a castle",
+    "Draw a bug",
+    "Draw a face"
+  ];
+  const DEFAULT_TWISTS = [
+    "It's covered in flowers",
+    "It's underwater now",
+    "It's on fire",
+    "It's made of glass",
+    "It's ancient and crumbling",
+    "It's tiny and delicate",
+    "It's enormous",
+    "It has wings",
+    "It's melting",
+    "It's covered in polka dots",
+    "It's made of candy",
+    "A storm is rolling in",
+    "It's actually a robot in disguise",
+    "It's wrapped in vines",
+    "It's haunted",
+    "It's celebrating a birthday",
+    "It's made of patchwork fabric",
+    "It just woke up from a nap",
+    "It's covered in spikes",
+    "It's royalty now, add a crown",
+    "It's been struck by lightning",
+    "It's frozen solid",
+    "It has a shadow with a mind of its own",
+    "It's turning into stone",
+    "Gravity stopped working near it"
+  ];
+
+  let promptDeck = [...DEFAULT_PROMPTS];
+  let twistDeck = [...DEFAULT_TWISTS];
+  let promptPool = [];
+  let twistPool = [];
+
+  let totalSeconds = 120;
+  let remaining = 120;
+  let timerId = null;
+  let isPaused = false;
+  let roundsTarget = 3;
+  let roundsUsed = 0;
+  let gameActive = false;
+
+  const promptText = document.getElementById('promptText');
+  const twistsContainer = document.getElementById('twistsContainer');
+  const dialTime = document.getElementById('dialTime');
+  const dialProgress = document.getElementById('dialProgress');
+  const statusText = document.getElementById('statusText');
+  const startBtn = document.getElementById('startBtn');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const newPromptBtn = document.getElementById('newPromptBtn');
+  const skipBtn = document.getElementById('skipBtn');
+  const minutesInput = document.getElementById('minutesInput');
+  const secondsInput = document.getElementById('secondsInput');
+  const roundsSelect = document.getElementById('roundsSelect');
+  const promptDeckArea = document.getElementById('promptDeck');
+  const twistDeckArea = document.getElementById('twistDeck');
+  const saveDeckBtn = document.getElementById('saveDeckBtn');
+  const resetDeckBtn = document.getElementById('resetDeckBtn');
+
+  const CIRCUMFERENCE = 2 * Math.PI * 52;
+  dialProgress.setAttribute('stroke-dasharray', CIRCUMFERENCE.toFixed(1));
+
+  promptDeckArea.value = promptDeck.join('\n');
+  twistDeckArea.value = twistDeck.join('\n');
+
+  function shuffle(arr){
+    const a = [...arr];
+    for(let i = a.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i+1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function refillPoolsIfNeeded(){
+    if(promptPool.length === 0) promptPool = shuffle(promptDeck);
+    if(twistPool.length === 0) twistPool = shuffle(twistDeck);
+  }
+
+  function drawPrompt(){
+    refillPoolsIfNeeded();
+    return promptPool.pop();
+  }
+  function drawTwist(){
+    refillPoolsIfNeeded();
+    return twistPool.pop();
+  }
+
+  function formatTime(sec){
+    const m = Math.floor(sec/60).toString().padStart(2,'0');
+    const s = Math.floor(sec%60).toString().padStart(2,'0');
+    return m + ':' + s;
+  }
+
+  function updateDial(){
+    dialTime.textContent = formatTime(remaining);
+    const frac = totalSeconds > 0 ? remaining / totalSeconds : 0;
+    dialProgress.setAttribute('stroke-dashoffset', (CIRCUMFERENCE * (1 - frac)).toFixed(1));
+    if(frac < 0.2){ dialProgress.style.stroke = 'var(--orange)'; }
+    else if(frac < 0.5){ dialProgress.style.stroke = 'var(--orange-dim)'; }
+    else { dialProgress.style.stroke = 'var(--cyan)'; }
+  }
+
+  function playDing(){
+    try{
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.value = 880;
+      g.gain.setValueAtTime(0.2, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+      o.connect(g); g.connect(ctx.destination);
+      o.start();
+      o.stop(ctx.currentTime + 0.5);
+    }catch(e){ /* audio not available, ignore */ }
+  }
+
+  function addTwistCard(text){
+    const card = document.createElement('div');
+    card.className = 'twist-card';
+    card.textContent = text;
+    twistsContainer.appendChild(card);
+  }
+
+  function getRoundSeconds(){
+    const m = Math.max(0, parseInt(minutesInput.value, 10) || 0);
+    const s = Math.max(0, Math.min(59, parseInt(secondsInput.value, 10) || 0));
+    return Math.max(5, m*60 + s);
+  }
+
+  function startTimer(){
+    if(timerId) return;
+    isPaused = false;
+    pauseBtn.textContent = 'Pause';
+    timerId = setInterval(() => {
+      if(isPaused) return;
+      remaining--;
+      updateDial();
+      if(remaining <= 0){
+        clearInterval(timerId);
+        timerId = null;
+        onRoundEnd();
+      }
+    }, 1000);
+  }
+
+  function onRoundEnd(){
+    playDing();
+    roundsUsed++;
+    if(roundsUsed >= roundsTarget){
+      statusText.textContent = "Round over. That's the last twist for this round \u2014 press New Prompt to play again.";
+      pauseBtn.disabled = true;
+      skipBtn.disabled = true;
+      startBtn.disabled = true;
+      gameActive = false;
+      return;
+    }
+    addTwistCard(drawTwist());
+    statusText.textContent = "New twist added — keep drawing.";
+    totalSeconds = getRoundSeconds();
+    remaining = totalSeconds;
+    updateDial();
+    startTimer();
+  }
+
+  function beginGame(){
+    twistsContainer.innerHTML = '';
+    roundsUsed = 0;
+    roundsTarget = parseInt(roundsSelect.value, 10);
+    totalSeconds = getRoundSeconds();
+    remaining = totalSeconds;
+    updateDial();
+    gameActive = true;
+    startBtn.disabled = true;
+    pauseBtn.disabled = false;
+    skipBtn.disabled = false;
+    minutesInput.disabled = true;
+    secondsInput.disabled = true;
+    roundsSelect.disabled = true;
+    statusText.textContent = "Drawing time — a twist lands when the timer hits zero.";
+    startTimer();
+  }
+
+  startBtn.addEventListener('click', () => {
+    if(promptText.textContent === "Press \"New Prompt\" to begin"){
+      promptText.textContent = drawPrompt();
+    }
+    beginGame();
+  });
+
+  pauseBtn.addEventListener('click', () => {
+    if(!gameActive) return;
+    isPaused = !isPaused;
+    pauseBtn.textContent = isPaused ? 'Resume' : 'Pause';
+    statusText.textContent = isPaused ? 'Paused.' : 'Drawing time — a twist lands when the timer hits zero.';
+  });
+
+  resetBtn.addEventListener('click', () => {
+    clearInterval(timerId);
+    timerId = null;
+    isPaused = false;
+    gameActive = false;
+    roundsUsed = 0;
+    twistsContainer.innerHTML = '';
+    totalSeconds = getRoundSeconds();
+    remaining = totalSeconds;
+    updateDial();
+    startBtn.disabled = false;
+    pauseBtn.disabled = true;
+    pauseBtn.textContent = 'Pause';
+    skipBtn.disabled = true;
+    minutesInput.disabled = false;
+    secondsInput.disabled = false;
+    roundsSelect.disabled = false;
+    statusText.textContent = '';
+  });
+
+  newPromptBtn.addEventListener('click', () => {
+    clearInterval(timerId);
+    timerId = null;
+    isPaused = false;
+    gameActive = false;
+    roundsUsed = 0;
+    twistsContainer.innerHTML = '';
+    promptText.textContent = drawPrompt();
+    totalSeconds = getRoundSeconds();
+    remaining = totalSeconds;
+    updateDial();
+    startBtn.disabled = false;
+    pauseBtn.disabled = true;
+    pauseBtn.textContent = 'Pause';
+    skipBtn.disabled = true;
+    minutesInput.disabled = false;
+    secondsInput.disabled = false;
+    roundsSelect.disabled = false;
+    statusText.textContent = 'New prompt ready. Press Start when you are.';
+  });
+
+  skipBtn.addEventListener('click', () => {
+    if(!gameActive) return;
+    clearInterval(timerId);
+    timerId = null;
+    onRoundEnd();
+  });
+
+  saveDeckBtn.addEventListener('click', () => {
+    const p = promptDeckArea.value.split('\n').map(s => s.trim()).filter(Boolean);
+    const t = twistDeckArea.value.split('\n').map(s => s.trim()).filter(Boolean);
+    if(p.length > 0) promptDeck = p;
+    if(t.length > 0) twistDeck = t;
+    promptPool = [];
+    twistPool = [];
+    statusText.textContent = 'Decks saved.';
+  });
+
+  resetDeckBtn.addEventListener('click', () => {
+    promptDeck = [...DEFAULT_PROMPTS];
+    twistDeck = [...DEFAULT_TWISTS];
+    promptDeckArea.value = promptDeck.join('\n');
+    twistDeckArea.value = twistDeck.join('\n');
+    promptPool = [];
+    twistPool = [];
+    statusText.textContent = 'Decks restored to defaults.';
+  });
+
+  updateDial();
+})();
+</script>
+</body>
+</html>
